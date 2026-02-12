@@ -1,0 +1,83 @@
+#version: '3'
+
+services:
+  web:
+    image: nginx
+    ports:
+      - 8876:80
+    volumes:
+      - ./_docker/nginx/conf.d/:/etc/nginx/conf.d
+      - ./:/var/www
+      container_name: url_shortener_nginx
+    depends_on:
+      - app
+
+  app:
+    build:
+      context: .
+      dockerfile: _docker/app/DockerFile
+    volumes:
+      - ./:/var/www
+    container_name: url_shortener_app
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    restart: always
+    volumes:
+      - ./tmp/db:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: lara-rabbit
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - 8104:3306
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    user: mysql
+    container_name: url_shortener_db
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    volumes:
+      - ./_docker/rabbitmq_data:/var/lib/rabbitmq
+#    environment:
+#      RABBITMQ_DEFAULT_USER: justsamvas@yandex.ru
+#      RABBITMQ_DEFAULT_PASS: iliked4534rtyn!
+#      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Web UI
+    container_name: url_shortener_rabbitmq
+
+  redis:
+    image: redis
+    container_name: project_redis_redis
+    restart: always
+    volumes:
+      - redis_volume_data:/data
+    ports:
+      - 6379:6379
+
+  redis_insight:
+    image: redislabs/redisinsight:1.14.0
+    container_name: project_redis_redisinsight
+    restart: always
+    ports:
+      - 8001:8001
+    volumes:
+      - redis_insight_volume_data:/db
+
+volumes:
+  redis_volume_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/_docker/redis/redis_volume_data
+  redis_insight_volume_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/_docker/redis/redis_insight_volume_data
