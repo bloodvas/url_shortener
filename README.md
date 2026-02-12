@@ -13,7 +13,31 @@
 
 ## Быстрый старт
 
-### 1. Запуск сервиса
+### 1. Настройка базы данных
+
+Перед запуском сервиса необходимо создать базу данных и таблицу:
+
+```bash
+# Подключение к MySQL
+docker exec -it url_shortener_db mysql -u root -p
+
+# Создание базы данных
+CREATE DATABASE url_shortener CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# Создание таблицы
+USE url_shortener;
+CREATE TABLE urls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    original_url TEXT NOT NULL,
+    short_code VARCHAR(10) UNIQUE NOT NULL,
+    clicks INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_short_code (short_code),
+    INDEX idx_original_url (original_url(255))
+);
+```
+
+### 2. Запуск сервиса
 
 ```bash
 # Запустить все сервисы
@@ -23,7 +47,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### 2. Доступ к сервисам
+### 3. Доступ к сервисам
 
 - **Основное приложение**: http://localhost:8876
 - **MySQL**: localhost:8104 (root/root)
@@ -187,6 +211,15 @@ docker exec -it url_shortener_db mysql -u root -p
 # Просмотр таблиц
 USE url_shortener;
 SHOW TABLES;
+
+# Просмотр структуры таблицы
+DESCRIBE urls;
+
+# Просмотр данных
+SELECT * FROM urls ORDER BY created_at DESC LIMIT 10;
+
+# Статистика
+SELECT COUNT(*) as total_urls, SUM(clicks) as total_clicks FROM urls;
 ```
 
 ### Redis Insight
