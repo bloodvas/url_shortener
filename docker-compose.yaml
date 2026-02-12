@@ -52,7 +52,7 @@ services:
 
   redis:
     image: redis
-    container_name: project_redis_redis
+    container_name: url_shortener_redis
     restart: always
     volumes:
       - redis_volume_data:/data
@@ -61,7 +61,7 @@ services:
 
   redis_insight:
     image: redislabs/redisinsight:1.14.0
-    container_name: project_redis_redisinsight
+    container_name: url_shortener_redisinsight
     restart: always
     ports:
       - 8001:8001
