@@ -1,3 +1,4 @@
 /.idea
-/vendor
+/app/vendor
 /tmp
+/_docker/rabbitmq_data

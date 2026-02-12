@@ -1,0 +1,12 @@
+{
+    "name": "bloodvas/url-shortener",
+    "description": "URL Shortener Application",
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.4"
+    }
+}
