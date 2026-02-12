@@ -3,6 +3,9 @@
 namespace App;
 
 use App\Controllers\ApiController;
+use App\Services\UrlService;
+use App\Models\Url;
+use App\Services\UrlShortener;
 
 class Router
 {
@@ -60,7 +63,13 @@ class Router
     private function callRoute(array $handler, array $params = []): void
     {
         [$controllerClass, $method] = $handler;
-        $controller = new $controllerClass();
+        
+        // Create dependencies
+        $urlModel = new Url();
+        $urlShortener = new UrlShortener();
+        $urlService = new UrlService($urlModel, $urlShortener);
+        
+        $controller = new $controllerClass($urlService);
         
         if (!empty($params)) {
             call_user_func_array([$controller, $method], $params);

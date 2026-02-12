@@ -2,95 +2,46 @@
 
 namespace App\Controllers;
 
-use App\Models\Url;
-use App\Services\UrlShortener;
+use App\Services\ApiResponse;
+use App\Services\UrlService;
 
 class ApiController
 {
-    private Url $urlModel;
-    private UrlShortener $shortener;
+    private UrlService $urlService;
 
-    public function __construct()
+    public function __construct(UrlService $urlService)
     {
-        $this->urlModel = new Url();
-        $this->shortener = new UrlShortener();
+        $this->urlService = $urlService;
     }
 
-    /**
-     * @return void
-     * function for shortening url
-     */
     public function shorten(): void
     {
-        header('Content-Type: application/json');
-
         $input = json_decode(file_get_contents('php://input'), true);
 
-        echo json_encode($input);
-
-        if (!isset($input['url']) || !$this->shortener->isValidUrl($input['url'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid URL provided']);
-            return;
+        if (!isset($input['url'])) {
+            ApiResponse::error('URL is required');
         }
 
-        $originalUrl = $input['url'];
-        
-        // Check if URL already exists
-        $existingUrl = $this->urlModel->findByOriginalUrl($originalUrl);
-        if ($existingUrl) {
-            echo json_encode([
-                'short_url' => $this->getBaseUrl() . '/' . $existingUrl['short_code'],
-                'short_code' => $existingUrl['short_code'],
-                'original_url' => $existingUrl['original_url']
-            ]);
-            return;
-        }
-
-        // Create new short URL
-        $shortCode = $this->shortener->generateUniqueShortCode();
-        $urlId = $this->urlModel->create($originalUrl, $shortCode);
-
-        if ($urlId) {
-            echo json_encode([
-                'short_url' => $this->getBaseUrl() . '/' . $shortCode,
-                'short_code' => $shortCode,
-                'original_url' => $originalUrl
-            ]);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to create short URL']);
+        try {
+            $result = $this->urlService->createShortUrl($input['url']);
+            ApiResponse::success($result);
+        } catch (\InvalidArgumentException $e) {
+            ApiResponse::error($e->getMessage());
+        } catch (\RuntimeException $e) {
+            ApiResponse::error($e->getMessage(), 500);
         }
     }
 
-    /**
-     * @param string $shortCode
-     * @return void
-     * function for redirecting to original url
-     */
     public function redirect(string $shortCode): void
     {
-        $url = $this->urlModel->findByShortCode($shortCode);
+        $url = $this->urlService->getUrlByShortCode($shortCode);
         
         if (!$url) {
-            http_response_code(404);
-            echo 'URL not found';
-            return;
+            ApiResponse::error('URL not found', 404);
         }
 
-        $this->urlModel->incrementClicks($url['id']);
+        $this->urlService->incrementClicks($url['id']);
         header('Location: ' . $url['original_url'], true, 301);
         exit;
-    }
-
-    /**
-     * @return string
-     * function for getting base url
-     */
-    private function getBaseUrl(): string
-    {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'];
-        return "$protocol://$host";
     }
 }
